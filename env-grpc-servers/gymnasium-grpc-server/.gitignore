@@ -1,0 +1,7 @@
+.venv
+.DS_Store
+*.iml
+htmlcov
+/src/Env_pb2.py
+/src/Env_pb2_grpc.py
+/.coverage
