@@ -25,10 +25,7 @@ from src.mapper import (
     ndarray_to_proto,
     proto_to_ndarray,
     gym_space_to_proto,
-    proto_to_gym_space,
     gym_to_proto_observation,
-    proto_to_gym_observation,
-    gym_to_proto_action,
     proto_to_gym_action,
 )
 
@@ -102,62 +99,6 @@ class TestMapper(unittest.TestCase):
         self.assertTrue(proto.HasField("dict"))
         self.assertEqual(len(proto.dict.spaces), 0)
 
-    # --- Test
-    def test_proto_to_gym_box_space(self):
-        low = np.array([-1.0, -2.0], dtype=np.float32)
-        high = np.array([1.0, 2.0], dtype=np.float32)
-        proto = Space(
-            box=BoxSpace(
-                low=ndarray_to_proto(low),
-                high=ndarray_to_proto(high),
-                shape=[2],
-                dtype=DType.float32,
-            )
-        )
-        space = proto_to_gym_space(proto)
-        self.assertIsInstance(space, gym.spaces.Box)
-        self.assertTrue(np.array_equal(space.low, low))
-        self.assertTrue(np.array_equal(space.high, high))
-
-    def test_proto_to_gym_discrete_space(self):
-        proto = Space(discrete=DiscreteSpace(n=5))
-        space = proto_to_gym_space(proto)
-        self.assertIsInstance(space, gym.spaces.Discrete)
-        self.assertEqual(space.n, 5)
-
-    def test_proto_to_gym_multidiscrete_space(self):
-        proto = Space(multidiscrete=MultiDiscreteSpace(nvec=[2, 3, 4]))
-        space = proto_to_gym_space(proto)
-        self.assertIsInstance(space, gym.spaces.MultiDiscrete)
-
-    def test_proto_to_gym_multibinary_space(self):
-        proto = Space(multibinary=MultiBinarySpace(n=3))
-        space = proto_to_gym_space(proto)
-        self.assertIsInstance(space, gym.spaces.MultiBinary)
-
-    def test_proto_to_gym_tuple_space(self):
-        proto = Space(
-            tuple=TupleSpace(
-                spaces=[
-                    Space(discrete=DiscreteSpace(n=5)),
-                ]
-            )
-        )
-        space = proto_to_gym_space(proto)
-        self.assertIsInstance(space, gym.spaces.Tuple)
-        self.assertEqual(len(space.spaces), 1)
-        self.assertIsInstance(space.spaces[0], gym.spaces.Discrete)
-
-    def test_proto_to_gym_dict_space(self):
-        proto = Space(
-            dict=DictSpace(
-                spaces={}
-            )
-        )
-        space = proto_to_gym_space(proto)
-        self.assertIsInstance(space, gym.spaces.Dict)
-        self.assertEqual(len(space.spaces), 0)
-
     # --- Test Gym Observation to Protobuf Observation ---
     def test_gym_array_to_proto_observation_array(self):
         observation = np.array([1.5, 2.5, 3.5], dtype=np.float32)
@@ -207,100 +148,6 @@ class TestMapper(unittest.TestCase):
         self.assertEqual(proto.map.items["a"].float, 1.5)
         self.assertEqual(proto.map.items["b"].float, 2.5)
         self.assertEqual(proto.map.items["c"].float, 3.5)
-
-    # --- Test Protobuf Observation to Gym Observation ---
-    def test_proto_to_gym_observation(self):
-        proto = Observation(
-            array=NDArray(
-                dtype=DType.float32,
-                shape=[3],
-                data=np.array([1.5, 2.5, 3.5], dtype=np.float32).tobytes(),
-            )
-        )
-        observation = proto_to_gym_observation(proto)
-        self.assertIsInstance(observation, np.ndarray)
-        self.assertTrue(np.array_equal(observation, np.array([1.5, 2.5, 3.5], dtype=np.float32)))
-
-    def test_proto_to_gym_observation_int32(self):
-        proto = Observation(int32=3)
-        observation = proto_to_gym_observation(proto)
-        self.assertIsInstance(observation, int)
-        self.assertEqual(observation, 3)
-
-    def test_proto_to_gym_observation_float(self):
-        proto = Observation(float=3.5)
-        observation = proto_to_gym_observation(proto)
-        self.assertIsInstance(observation, float)
-        self.assertEqual(observation, 3.5)
-
-    def test_proto_to_gym_observation_string(self):
-        proto = Observation(string="Hello, world!")
-        observation = proto_to_gym_observation(proto)
-        self.assertIsInstance(observation, str)
-        self.assertEqual(observation, "Hello, world!")
-
-    def test_proto_to_gym_observation_tuple(self):
-        proto = Observation(
-            tuple=TupleObservation(
-                items=[
-                    Observation(array=NDArray(dtype=DType.float32, shape=[1], data=np.array([1.5], dtype=np.float32).tobytes())),
-                ]
-            )
-        )
-        observation = proto_to_gym_observation(proto)
-        self.assertIsInstance(observation, tuple)
-        self.assertEqual(len(observation), 1)
-        self.assertIsInstance(observation[0], np.ndarray)
-        self.assertTrue(np.array_equal(observation[0], np.array([1.5], dtype=np.float32)))
-
-    def test_proto_to_gym_observation_map(self):
-        proto = Observation(
-            map=MapObservation()
-        )
-        observation = proto_to_gym_observation(proto)
-        self.assertIsInstance(observation, dict)
-        self.assertEqual(len(observation), 0)
-
-    # --- Test Gym Action to Protobuf Action ---
-    def test_gym_action_to_proto_int32(self):
-        action = 3
-        proto = gym_to_proto_action(action)
-        self.assertIsInstance(proto, Action)
-        self.assertTrue(proto.HasField("int32"))
-        self.assertEqual(proto.int32, action)
-
-    def test_gym_action_to_proto_float(self):
-        action = 3.5
-        proto = gym_to_proto_action(action)
-        self.assertIsInstance(proto, Action)
-        self.assertTrue(proto.HasField("float"))
-        self.assertEqual(proto.float, action)
-
-    def test_gym_action_to_proto_string(self):
-        action = "Hello, world!"
-        proto = gym_to_proto_action(action)
-        self.assertIsInstance(proto, Action)
-        self.assertTrue(proto.HasField("string"))
-        self.assertEqual(proto.string, action)
-
-    def test_gym_action_to_proto_tuple(self):
-        action = (1.5, 2.5, 3.5)
-        proto = gym_to_proto_action(action)
-        self.assertIsInstance(proto, Action)
-        self.assertTrue(proto.HasField("tuple"))
-        self.assertEqual(len(proto.tuple.items), 3)
-        self.assertEqual(proto.tuple.items[0].float, 1.5)
-        self.assertEqual(proto.tuple.items[1].float, 2.5)
-        self.assertEqual(proto.tuple.items[2].float, 3.5)
-
-    def test_gym_action_to_proto_map(self):
-        action = {"a": 1.5, "b": 2.5, "c": 3.5}
-        proto = gym_to_proto_action(action)
-        self.assertIsInstance(proto, Action)
-        self.assertTrue(proto.HasField("map"))
-        self.assertEqual(len(proto.map.items), 3)
-        self.assertEqual(proto.map.items["a"].float, 1.5)
-        self.assertEqual(proto.map.items["b"].float, 2.5)
 
     # --- Test Protobuf Action to Gym Action ---
     def test_proto_array_to_gym_action(self):

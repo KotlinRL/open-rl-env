@@ -5,40 +5,18 @@ import numpy as np
 from grpc import StatusCode
 from Env_pb2_grpc import EnvServicer, add_EnvServicer_to_server
 from Env_pb2 import (
-    DType,
-    NDArray,
-    BoxSpace,
-    Observation,
-    DiscreteSpace,
-    MultiDiscreteSpace,
-    MultiBinarySpace,
-    TupleSpace,
-    DictSpace,
-    Space,
-    TupleObservation,
-    MapObservation,
-    Observation,
-    TupleAction,
-    MapAction,
-    Action,
-    Info,
     MakeResponse,
     SpaceRequest,
     SpaceResponse,
     ResetResponse,
     StepResponse,
-    Info,
     RenderResponse,
     Empty
 )
 from mapper import (
     ndarray_to_proto,
-    proto_to_ndarray,
     gym_space_to_proto,
-    proto_to_gym_space,
     gym_to_proto_observation,
-    proto_to_gym_observation,
-    gym_to_proto_action,
     proto_to_gym_action,
     gym_to_proto_info
 )

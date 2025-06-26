@@ -1,10 +1,13 @@
-import Env_pb2
-import numpy as np
 import gymnasium as gym
+import numpy as np
 
 from Env_pb2 import (
     DType,
     NDArray,
+    TextSpace,
+    SequenceSpace,
+    OneOfSpace,
+    GraphSpace,
     BoxSpace,
     Observation,
     DiscreteSpace,
@@ -25,7 +28,7 @@ from Env_pb2 import (
     SpaceResponse,
     ResetResponse,
     StepResponse,
-    Info
+    Info,
 )
 
 # === DTYPE MAPPING HELPERS ===
@@ -113,37 +116,35 @@ def gym_space_to_proto(space):
                 spaces={key: gym_space_to_proto(value) for key, value in space.spaces.items()}
             )
         )
+    elif isinstance(space, gym.spaces.Text):
+        return Space(
+            text=TextSpace(
+                min_length=space.min_length,
+                max_length=space.max_length
+            )
+        )
+    elif isinstance(space, gym.spaces.Sequence):
+        return Space(
+            sequence=SequenceSpace(
+                space=gym_space_to_proto(space.feature_space),
+                stack=space.stack
+            )
+        )
+    elif isinstance(space, gym.spaces.OneOf):
+        return Space(
+            oneof=OneOfSpace(
+                spaces=[gym_space_to_proto(s) for s in space.spaces]
+            )
+        )
+    elif isinstance(space, gym.spaces.Graph):
+        return Space(
+            graph=GraphSpace(
+                node_space=gym_space_to_proto(space.node_space),
+                edge_space=gym_space_to_proto(space.edge_space)
+            )
+        )
     else:
         raise ValueError(f"Unsupported Gym space type: {type(space)}")
-
-def proto_to_gym_space(proto):
-    """
-    Convert Protobuf Space message to Gym space.
-    """
-    space_type = proto.WhichOneof("type")
-    if space_type == "box":
-        box = proto.box
-        low = proto_to_ndarray(box.low)
-        high = proto_to_ndarray(box.high)
-        return gym.spaces.Box(
-            low=low, high=high, shape=tuple(box.shape), dtype=get_np_dtype(box.dtype)
-        )
-    elif space_type == "discrete":
-        return gym.spaces.Discrete(n=proto.discrete.n, start=proto.discrete.start)
-    elif space_type == "multidiscrete":
-        return gym.spaces.MultiDiscrete(nvec=proto.multidiscrete.nvec)
-    elif space_type == "multibinary":
-        return gym.spaces.MultiBinary(n=proto.multibinary.n)
-    elif space_type == "tuple":
-        return gym.spaces.Tuple(
-            [proto_to_gym_space(s) for s in proto.tuple.spaces]
-        )
-    elif space_type == "dict":
-        return gym.spaces.Dict(
-            {key: proto_to_gym_space(value) for key, value in proto.dict.spaces.items()}
-        )
-    else:
-        raise ValueError(f"Unsupported Protobuf space type: {space_type}")
 
 # === OBSERVATION MAPPING ===
 def gym_to_proto_observation(obs):
@@ -173,54 +174,7 @@ def gym_to_proto_observation(obs):
     else:
         raise ValueError(f"Unsupported observation type: {type(obs)}")
 
-def proto_to_gym_observation(proto):
-    """
-    Convert Protobuf Observation message to Gym observation.
-    """
-    field = proto.WhichOneof("value")
-    if field == "array":
-        return proto_to_ndarray(proto.array)
-    elif field == "int32":
-        return proto.int32
-    elif field == "float":
-        return proto.float
-    elif field == "string":
-        return proto.string
-    elif field == "tuple":
-        return tuple(proto_to_gym_observation(item) for item in proto.tuple.items)
-    elif field == "map":
-        return {item.key: proto_to_gym_observation(item.value) for item in proto.map.items}
-    else:
-        raise ValueError(f"Unsupported Protobuf observation field: {field}")
-
 # === ACTION MAPPING ===
-def gym_to_proto_action(action):
-    """
-    Convert Gym action to Protobuf Action message.
-    """
-    if isinstance(action, np.ndarray):
-        return Action(array=ndarray_to_proto(action))
-    elif isinstance(action, int):
-        return Action(int32=action)
-    elif isinstance(action, float):
-        return Action(float=action)
-    elif isinstance(action, str):
-        return Action(string=action)
-    elif isinstance(action, tuple):
-        return Action(
-            tuple=TupleAction(
-                items=[gym_to_proto_action(item) for item in action]
-            )
-        )
-    elif isinstance(action, dict):
-        return Action(
-            map=MapAction(
-                items={key: gym_to_proto_action(value) for key, value in action.items()}
-            )
-        )
-    else:
-        raise ValueError(f"Unsupported action type: {type(action)}")
-
 def proto_to_gym_action(proto):
     """
     Convert Protobuf Action message to Gym action.
