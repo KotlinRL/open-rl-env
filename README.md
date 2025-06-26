@@ -89,7 +89,7 @@ Extend to new backends, support new environments, or improve the proto—join th
 
 ## 📄 License
 
-MIT License
+Apache License Version 2.0
 
 ---
 
